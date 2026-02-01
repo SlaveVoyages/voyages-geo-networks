@@ -1,6 +1,5 @@
 from math import sqrt
 import networkx as nx
-from localsettings import *
 import requests
 import json
 import pandas as pd
@@ -10,6 +9,16 @@ import multiprocessing
 import numpy as np
 import time
 import re
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DJANGO_AUTH_KEY = os.getenv('DJANGO_AUTH_KEY')
+DJANGO_BASE_URL = os.getenv('DJANGO_BASE_URL')
+TMP_PATH=os.getenv('TMP_PATH')
+rebuilder_number_of_workers=int(os.getenv('rebuilder_number_of_workers'))
+
 
 def fuzzyplacenamestrip(name):
 	name=re.sub("(,\s*port unspecified)|(,\s*unspecified)|(\(colony unspecified\))|(,\s*place unspecified)","",name,re.I)
@@ -551,10 +560,11 @@ def get_map_data(payload):
 				## important geographic nodes that aren't actually in the itinerary
 				## Yikes. We need to flag that as an error and draw a straight line
 				## So that the editors know to update the map network
-				sp_export_preflight=[graph.nodes[x]['uuid'] if 'uuid' in graph.nodes[x] else x for x in list(sp)]
-				for i in sp_export_preflight:
-					if type(i)==str and i not in uuids:
-						spfail=True
+				if not spfail:
+					sp_export_preflight=[graph.nodes[x]['uuid'] if 'uuid' in graph.nodes[x] else x for x in list(sp)]
+					for i in sp_export_preflight:
+						if type(i)==str and i not in uuids:
+							spfail=True
 
 			
 				#if all our shortest path work has failed, then return a straight line
@@ -694,17 +704,12 @@ def build_index(endpoint,graph,oceanic_subgraph_view,pk_var,itinerary_vars,weigh
 	
 	print(f"ALL RESULTS: {len(results[pk_var])}")
 	
-# 	print(nodelabels,linklabels,itinerary_vars)
-	
-# 	range(len(results[pk_var]))
-	
 	results_pivoted=[[{k:results[k][i] for k in results},pk_var,itinerary_vars,weight_var,graph,linklabels,nodelabels] for i in range(len(results[pk_var]))]
 		
 	print(f"REBUILDING WITH {rebuilder_number_of_workers} WORKERS")
 	
 	with multiprocessing.Pool(rebuilder_number_of_workers) as p:
 		proc_results=p.map(get_map_data, results_pivoted)
-# 		print(all_procs_gathered)
 	
 	nodesdfrows=[]
 	edgesdfrows=[]
@@ -722,10 +727,6 @@ def build_index(endpoint,graph,oceanic_subgraph_view,pk_var,itinerary_vars,weigh
 	
 	nodesdf=pd.DataFrame.from_records(nodesdfrows)
 	edgesdf=pd.DataFrame.from_records(edgesdfrows)
-# 	nodesdf=pd.DataFrame.from_records([])
-# 	edgesdf=pd.DataFrame.from_records([])
-# 	nodesdatadict={}
-# 	edgesdatadict={}
 	
 	print('NODES',nodesdf)
 	print('EDGES',edgesdf)

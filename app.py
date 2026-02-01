@@ -4,7 +4,6 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import json
 import math
 import requests
-from localsettings import *
 from index_vars import *
 from utils import *
 import networkx as nx
@@ -14,6 +13,16 @@ import pickle
 import os
 import pandas as pd
 from flask.cli import AppGroup
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DJANGO_AUTH_KEY = os.getenv('DJANGO_AUTH_KEY')
+DJANGO_BASE_URL = os.getenv('DJANGO_BASE_URL')
+TMP_PATH=os.getenv('TMP_PATH')
+rebuilder_number_of_workers=int(os.getenv('rebuilder_number_of_workers'))
 
 app = Flask(__name__,template_folder='./templates/')
 app.config['JSON_SORT_KEYS'] = False
